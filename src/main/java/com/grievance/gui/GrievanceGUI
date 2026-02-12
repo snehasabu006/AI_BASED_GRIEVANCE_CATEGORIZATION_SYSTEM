@@ -1,86 +1,167 @@
+package main.java.com.grievance.gui;
+
+/* ================================
+   IMPORTS (Common for Both Parts)
+   ================================ */
+
+import main.java.com.grievance.preprocessing.Vectorizer;
+import main.java.com.grievance.preprocessing.TextPreprocessor;
+
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.util.*;
 
-public class GrievanceGUI extends JFrame {
 
-    JTextField inputField;
-    JButton predictBtn;
-    JLabel resultLabel;
+/* =========================================================
+   CLASS : GrievanceGUI
+   ========================================================= */
 
-    Map<String, String> grievanceMap = new HashMap<>();
+public class GrievanceGUI {
 
-    public GrievanceGUI() {
+    /* =========================================================
+       PART 1 : FRONTEND GUI (By Sneha)
+       ========================================================= */
 
-        setTitle("Grievance Predictor");
-        setSize(400, 200);
-        setLayout(null);
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+    private JFrame frame;
+    private JTextArea complaintArea;
+    private JButton predictButton, clearButton;
+    private JLabel resultLabel;
 
-        JLabel label = new JLabel("Enter Grievance:");
-        label.setBounds(30, 30, 120, 25);
-        add(label);
+    private Vectorizer vectorizer;
 
-        inputField = new JTextField();
-        inputField.setBounds(150, 30, 180, 25);
-        add(inputField);
+    /* =========================================================
+       PART 2 : BACKEND (CSV + Prediction Logic)
+       By Mydhily
+       ========================================================= */
 
-        predictBtn = new JButton("Predict");
-        predictBtn.setBounds(130, 70, 100, 30);
-        add(predictBtn);
+    private Map<String, String> grievanceMap = new HashMap<>();
 
-        resultLabel = new JLabel("");
-        resultLabel.setBounds(30, 120, 350, 25);
-        add(resultLabel);
 
-        loadCSV();
+    /* =========================================================
+       CONSTRUCTOR (Combined)
+       ========================================================= */
 
-        // Button Action
-        predictBtn.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
+    public GrievanceGUI(Vectorizer vec) {
+        this.vectorizer = vec;
 
-                String input = inputField.getText().trim().toLowerCase();
-
-                // Input validation
-                if (input.isEmpty()) {
-                    JOptionPane.showMessageDialog(null,
-                            "Input cannot be empty!",
-                            "Error",
-                            JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-
-                String prediction = predictCategory(input);
-                resultLabel.setText("Predicted Category: " + prediction);
-            }
-        });
-
-        setVisible(true);
+        loadCSV();     // Mydhily's part
+        initialize();  // Sneha's part
     }
 
-    // Load CSV
-    void loadCSV() {
+
+    /* =========================================================
+       ================== SNEHA'S GUI PART ====================
+       ========================================================= */
+
+    private void initialize() {
+
+        frame = new JFrame("AI-Based Grievance Categorization");
+        frame.setBounds(100, 100, 550, 450);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setLayout(new BorderLayout());
+
+        JLabel lbl = new JLabel("Enter Grievance / Complaint Text:");
+        lbl.setFont(new Font("Arial", Font.BOLD, 16));
+        lbl.setHorizontalAlignment(SwingConstants.CENTER);
+        frame.add(lbl, BorderLayout.NORTH);
+
+        complaintArea = new JTextArea();
+        complaintArea.setLineWrap(true);
+        complaintArea.setWrapStyleWord(true);
+        complaintArea.setFont(new Font("Arial", Font.PLAIN, 14));
+        JScrollPane scrollPane = new JScrollPane(complaintArea);
+        frame.add(scrollPane, BorderLayout.CENTER);
+
+        JPanel bottomPanel = new JPanel(new BorderLayout());
+
+        JPanel buttonPanel = new JPanel();
+        predictButton = new JButton("Predict");
+        clearButton = new JButton("Clear");
+
+        predictButton.setFont(new Font("Arial", Font.BOLD, 14));
+        clearButton.setFont(new Font("Arial", Font.BOLD, 14));
+
+        buttonPanel.add(predictButton);
+        buttonPanel.add(clearButton);
+
+        bottomPanel.add(buttonPanel, BorderLayout.NORTH);
+
+        resultLabel = new JLabel(" ");
+        resultLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        resultLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        bottomPanel.add(resultLabel, BorderLayout.SOUTH);
+
+        frame.add(bottomPanel, BorderLayout.SOUTH);
+
+        /* Clear Button (Sneha) */
+        clearButton.addActionListener(e -> {
+            complaintArea.setText("");
+            resultLabel.setText(" ");
+        });
+
+        /* Predict Button (Connected to Mydhily’s Logic) */
+        predictButton.addActionListener(e -> {
+
+            String text = complaintArea.getText().trim();
+
+            if (text.isEmpty()) {
+                JOptionPane.showMessageDialog(frame,
+                        "Input cannot be empty!",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // Text cleaning (Sneha)
+            String cleaned = TextPreprocessor.cleanText(text);
+
+            // Vectorization (Sneha)
+            double[] vector = vectorizer.transform(cleaned);
+
+            // Prediction (Mydhily)
+            String prediction = predictCategory(cleaned);
+
+            resultLabel.setText("Predicted Category: " + prediction);
+        });
+
+        frame.setVisible(true);
+    }
+
+
+    /* =========================================================
+       ================= MYDHILY'S BACKEND ====================
+       ========================================================= */
+
+    // Load CSV File
+    private void loadCSV() {
+
         try (BufferedReader br = new BufferedReader(new FileReader("grievance.csv"))) {
 
             String line;
-            br.readLine(); // skip header if exists
+            br.readLine(); // skip header
 
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split(",");
+
                 if (parts.length >= 2) {
-                    grievanceMap.put(parts[0].trim().toLowerCase(),
-                                     parts[1].trim());
+                    grievanceMap.put(
+                            parts[0].trim().toLowerCase(),
+                            parts[1].trim()
+                    );
                 }
             }
 
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, "Error loading grievance.csv");
+            JOptionPane.showMessageDialog(null,
+                    "Error loading grievance.csv");
         }
     }
 
-    //  Modified Prediction Logic 
-     String predictCategory(String input) {
+
+    // Prediction Logic
+    private String predictCategory(String input) {
 
         for (String keyword : grievanceMap.keySet()) {
 
@@ -97,7 +178,19 @@ public class GrievanceGUI extends JFrame {
         return "Unknown Category";
     }
 
+
+    /* =========================================================
+       MAIN METHOD (Combined)
+       ========================================================= */
+
     public static void main(String[] args) {
-        new GrievanceGUI();
+
+        Vectorizer vec = Vectorizer.load("models/vectorizer.ser");
+
+        if (vec == null)
+            vec = new Vectorizer();
+
+        new GrievanceGUI(vec);
     }
 }
+
