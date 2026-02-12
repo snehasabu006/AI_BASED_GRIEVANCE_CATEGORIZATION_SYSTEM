@@ -1,5 +1,5 @@
 package main.java.com.grievance;
-
+import main.java.com.grievance.backend.ModelTest;
 import main.java.com.grievance.utils.DataLoader;
 import main.java.com.grievance.utils.DataExplorer;
 import main.java.com.grievance.utils.ClassDistribution;
@@ -34,5 +34,10 @@ public class Main {
         // Task by Mydhily: Check missing / empty values
         // ==========================================
         CSVMissingCheck.checkMissingAndClean(path);
+        // ==========================================
+        // Task by Riya: Model Saving + Loading Test
+        // ==========================================
+        ModelTest.runModelTest();
+
     }
 }
