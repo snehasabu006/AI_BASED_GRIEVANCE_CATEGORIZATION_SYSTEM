@@ -1,0 +1,103 @@
+import javax.swing.*;
+import java.awt.event.*;
+import java.io.*;
+import java.util.*;
+
+public class GrievanceGUI extends JFrame {
+
+    JTextField inputField;
+    JButton predictBtn;
+    JLabel resultLabel;
+
+    Map<String, String> grievanceMap = new HashMap<>();
+
+    public GrievanceGUI() {
+
+        setTitle("Grievance Predictor");
+        setSize(400, 200);
+        setLayout(null);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+
+        JLabel label = new JLabel("Enter Grievance:");
+        label.setBounds(30, 30, 120, 25);
+        add(label);
+
+        inputField = new JTextField();
+        inputField.setBounds(150, 30, 180, 25);
+        add(inputField);
+
+        predictBtn = new JButton("Predict");
+        predictBtn.setBounds(130, 70, 100, 30);
+        add(predictBtn);
+
+        resultLabel = new JLabel("");
+        resultLabel.setBounds(30, 120, 350, 25);
+        add(resultLabel);
+
+        loadCSV();
+
+        // Button Action
+        predictBtn.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+
+                String input = inputField.getText().trim().toLowerCase();
+
+                // Input validation
+                if (input.isEmpty()) {
+                    JOptionPane.showMessageDialog(null,
+                            "Input cannot be empty!",
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                String prediction = predictCategory(input);
+                resultLabel.setText("Predicted Category: " + prediction);
+            }
+        });
+
+        setVisible(true);
+    }
+
+    // Load CSV
+    void loadCSV() {
+        try (BufferedReader br = new BufferedReader(new FileReader("grievance.csv"))) {
+
+            String line;
+            br.readLine(); // skip header if exists
+
+            while ((line = br.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length >= 2) {
+                    grievanceMap.put(parts[0].trim().toLowerCase(),
+                                     parts[1].trim());
+                }
+            }
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, "Error loading grievance.csv");
+        }
+    }
+
+    //  Modified Prediction Logic 
+     String predictCategory(String input) {
+
+        for (String keyword : grievanceMap.keySet()) {
+
+            String[] words = keyword.split(" ");
+
+            for (String word : words) {
+
+                if (input.contains(word.toLowerCase())) {
+                    return grievanceMap.get(keyword);
+                }
+            }
+        }
+
+        return "Unknown Category";
+    }
+
+    public static void main(String[] args) {
+        new GrievanceGUI();
+    }
+}
